@@ -18,5 +18,5 @@ package main
 import "github.com/rawdaGastan/zos-update-version/cmd"
 
 func main() {
-  cmd.Execute()
+	cmd.Execute()
 }

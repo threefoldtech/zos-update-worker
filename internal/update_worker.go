@@ -29,7 +29,7 @@ type worker struct {
 }
 
 // new instance of the worker
-func NewWorker(logger zerolog.Logger, src string, dst string, params map[string]any) worker {
+func NewWorker(logger zerolog.Logger, src string, dst string, params map[string]interface{}) worker {
 	interval := time.Minute * 10
 	substrateUrl := SUBSTRATE_URL
 

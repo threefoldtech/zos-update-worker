@@ -131,7 +131,7 @@ type worker struct {
 }
 
 // new instance of the worker
-func NewWorker(logger zerolog.Logger, src string, dst string, params map[string]any) worker <span class="cov8" title="1">{
+func NewWorker(logger zerolog.Logger, src string, dst string, params map[string]interface{}) worker <span class="cov8" title="1">{
         interval := time.Minute * 10
         substrateUrl := SUBSTRATE_URL
 
@@ -233,7 +233,7 @@ func (w *worker) updateZosVersion(network string) error <span class="cov8" title
 }
 
 func (w *worker) UpdateWithInterval() error <span class="cov8" title="1">{
-        ticker := time.NewTicker(2 * time.Second) //w.interval
+        ticker := time.NewTicker(w.interval)
         var err error
 
         for range ticker.C </span><span class="cov8" title="1">{

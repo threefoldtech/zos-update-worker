@@ -43,7 +43,7 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
-		params := map[string]any{}
+		params := map[string]interface{}{}
 		interval, err := cmd.Flags().GetInt("interval")
 		if err != nil {
 			logger.Error().Msg(fmt.Sprint("update zos failed with error: ", err))

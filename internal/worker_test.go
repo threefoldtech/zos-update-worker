@@ -12,7 +12,7 @@ func TestPkidStore(t *testing.T) {
 	testDir := t.TempDir()
 	logger := zerolog.New(os.Stdout).With().Logger()
 
-	params := map[string]any{}
+	params := map[string]interface{}{}
 	params["interval"] = 1 * time.Second
 	src := testDir + "/tf-autobuilder"
 	dst := testDir + "/tf-zos"

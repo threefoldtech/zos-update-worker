@@ -1,8 +1,6 @@
 package internal
 
 import (
-	"fmt"
-
 	client "github.com/threefoldtech/substrate-client"
 )
 
@@ -18,13 +16,12 @@ func newSubstrateClient(url ...string) (substrateClient, error) {
 }
 
 // get the latest version for the provided substrate url (main, test, qa)
-func (s *substrateClient) checkVersion() (*string, error) {
+func (s *substrateClient) checkVersion() (string, error) {
 
 	version, err := s.client.GetZosVersion()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	fmt.Printf("version: %v\n", version)
 
-	return version, nil
+	return *version, nil
 }

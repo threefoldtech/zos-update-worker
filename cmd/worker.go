@@ -25,13 +25,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var cfgFile string
-
-// NOTE: the worker arguments should also accept urls (multiple) per network (mainnet, testnet, qa)
-// but should be set to good defaults.
-
-// worker --src-dir tf-autobilder --dst-dir tf-zos
-
 var rootCmd = &cobra.Command{
 	Use:   "zos-update-version",
 	Short: "A worker to update the version of zos",
@@ -40,27 +33,27 @@ var rootCmd = &cobra.Command{
 
 		src, err := cmd.Flags().GetString("src")
 		if err != nil {
-			logger.Error().Msg("update zos failed with error: " + fmt.Sprint(err))
+			logger.Error().Msg(fmt.Sprint("update zos failed with error: ", err))
 			return
 		}
 
 		dst, err := cmd.Flags().GetString("dst")
 		if err != nil {
-			logger.Error().Msg("update zos failed with error: " + fmt.Sprint(err))
+			logger.Error().Msg(fmt.Sprint("update zos failed with error: ", err))
 			return
 		}
 
 		params := map[string]any{}
-		interval, err := cmd.Flags().GetDuration("interval")
+		interval, err := cmd.Flags().GetInt("interval")
 		if err != nil {
-			logger.Error().Msg("update zos failed with error: " + fmt.Sprint(err))
+			logger.Error().Msg(fmt.Sprint("update zos failed with error: ", err))
 			return
 		}
-		params["interval"] = interval
+		params["interval"] = time.Duration(interval) * time.Minute
 
 		production, err := cmd.Flags().GetStringSlice("main-url")
 		if err != nil {
-			logger.Error().Msg("update zos failed with error: " + fmt.Sprint(err))
+			logger.Error().Msg(fmt.Sprint("update zos failed with error: ", err))
 			return
 		}
 		if len(production) > 0 {
@@ -69,7 +62,7 @@ var rootCmd = &cobra.Command{
 
 		test, err := cmd.Flags().GetStringSlice("test-url")
 		if err != nil {
-			logger.Error().Msg("update zos failed with error: " + fmt.Sprint(err))
+			logger.Error().Msg(fmt.Sprint("update zos failed with error: ", err))
 			return
 		}
 		if len(test) > 0 {
@@ -78,17 +71,17 @@ var rootCmd = &cobra.Command{
 
 		qa, err := cmd.Flags().GetStringSlice("test-url")
 		if err != nil {
-			logger.Error().Msg("update zos failed with error: " + fmt.Sprint(err))
+			logger.Error().Msg(fmt.Sprint("update zos failed with error: ", err))
 			return
 		}
 		if len(qa) > 0 {
 			params["qa"] = qa
 		}
 
-		worker := internal.NewWorker(src, dst, params)
+		worker := internal.NewWorker(logger, src, dst, params)
 		err = worker.UpdateWithInterval()
 		if err != nil {
-			logger.Error().Msg("update zos failed with error: " + fmt.Sprint(err))
+			logger.Error().Msg(fmt.Sprint("update zos failed with error: ", err))
 			return
 		}
 	},
@@ -102,9 +95,11 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringP("src", "s", "tf-autobilder", "Enter your source directory")
+	cobra.OnInitialize()
+
+	rootCmd.Flags().StringP("src", "s", "tf-autobuilder", "Enter your source directory")
 	rootCmd.Flags().StringP("dst", "d", "tf-zos", "Enter your destination directory")
-	rootCmd.Flags().DurationP("interval", "i", 10*time.Minute, "Enter the interval between each update")
+	rootCmd.Flags().IntP("interval", "i", 10, "Enter the interval between each update")
 
 	rootCmd.Flags().StringSliceP("main-url", "m", []string{}, "Enter your mainnet substrate urls")
 	rootCmd.Flags().StringSliceP("test-url", "t", []string{}, "Enter your testnet substrate urls")

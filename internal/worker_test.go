@@ -4,16 +4,14 @@ import (
 	"os"
 	"testing"
 	"time"
-
-	"github.com/rs/zerolog"
 )
 
 func TestPkidStore(t *testing.T) {
 	testDir := t.TempDir()
-	logger := zerolog.New(os.Stdout).With().Logger()
 
-	params := map[string]interface{}{}
-	params["interval"] = 1 * time.Second
+	params := Params{
+		Interval: 1 * time.Second,
+	}
 	src := testDir + "/tf-autobuilder"
 	dst := testDir + "/tf-zos"
 
@@ -27,10 +25,10 @@ func TestPkidStore(t *testing.T) {
 		t.Error(err)
 	}
 
-	worker := NewWorker(logger, src, dst, params)
+	worker := NewWorker(src, dst, params)
 
 	t.Run("test_no_src_qa", func(t *testing.T) {
-		err := worker.UpdateWithInterval()
+		err := worker.updateZosVersion("qa")
 		if err == nil {
 			t.Errorf("update zos should fail")
 		}
@@ -42,7 +40,7 @@ func TestPkidStore(t *testing.T) {
 			t.Error(err)
 		}
 
-		err = worker.UpdateWithInterval()
+		err = worker.updateZosVersion("test")
 		if err == nil {
 			t.Errorf("update zos should fail for test, %v", err)
 		}
@@ -54,20 +52,18 @@ func TestPkidStore(t *testing.T) {
 			t.Error(err)
 		}
 
-		err = worker.UpdateWithInterval()
+		err = worker.updateZosVersion("main")
 		if err == nil {
 			t.Errorf("update zos should fail for main, %v", err)
 		}
 	})
 
 	t.Run("test_params_wrong_url", func(t *testing.T) {
-		params["qa"] = []string{"wss://tfchain.qa1.grid.tf/ws"}
-		params["testing"] = []string{"wss://tfchain.test.grid.tf/ws"}
-		params["production"] = []string{"wss://tfchain.grid.tf/ws"}
+		params.QAUrls = []string{"wss://tfchain.qa1.grid.tf/ws"}
 
-		worker = NewWorker(logger, src, dst, params)
+		worker = NewWorker(src, dst, params)
 
-		err := worker.UpdateWithInterval()
+		err := worker.updateZosVersion("qa")
 		if err == nil {
 			t.Errorf("update zos should fail")
 		}

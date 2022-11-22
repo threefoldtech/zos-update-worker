@@ -168,7 +168,7 @@ func (w *worker) UpdateWithInterval() {
 
 			exp := backoff.NewExponentialBackOff()
 			exp.MaxInterval = 2 * time.Second
-			exp.MaxElapsedTime = 30 * time.Second
+			exp.MaxElapsedTime = 10 * time.Second
 			err := backoff.Retry(func() error {
 
 				err := w.updateZosVersion(network)
@@ -180,7 +180,6 @@ func (w *worker) UpdateWithInterval() {
 			}, exp)
 
 			if err != nil {
-				ticker.Stop()
 				log.Error().Msg(fmt.Sprint("update zos failed with error: ", err))
 			}
 		}

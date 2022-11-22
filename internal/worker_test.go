@@ -28,7 +28,7 @@ func TestPkidStore(t *testing.T) {
 	worker := NewWorker(src, dst, params)
 
 	t.Run("test_no_src_qa", func(t *testing.T) {
-		err := worker.updateZosVersion("qa")
+		err := worker.updateZosVersion("qa", worker.substrate["qa"])
 		if err == nil {
 			t.Errorf("update zos should fail")
 		}
@@ -40,7 +40,7 @@ func TestPkidStore(t *testing.T) {
 			t.Error(err)
 		}
 
-		err = worker.updateZosVersion("test")
+		err = worker.updateZosVersion("testing", worker.substrate["testing"])
 		if err == nil {
 			t.Errorf("update zos should fail for test, %v", err)
 		}
@@ -52,7 +52,7 @@ func TestPkidStore(t *testing.T) {
 			t.Error(err)
 		}
 
-		err = worker.updateZosVersion("main")
+		err = worker.updateZosVersion("production", worker.substrate["production"])
 		if err == nil {
 			t.Errorf("update zos should fail for main, %v", err)
 		}
@@ -63,7 +63,7 @@ func TestPkidStore(t *testing.T) {
 
 		worker = NewWorker(src, dst, params)
 
-		err := worker.updateZosVersion("qa")
+		err := worker.updateZosVersion("qa", worker.substrate["qa"])
 		if err == nil {
 			t.Errorf("update zos should fail")
 		}

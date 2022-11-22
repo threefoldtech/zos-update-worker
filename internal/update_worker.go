@@ -10,12 +10,6 @@ import (
 	client "github.com/threefoldtech/substrate-client"
 )
 
-var SUBSTRATE_URLS = map[string][]string{
-	"qa":         {"wss://tfchain.qa.grid.tf/ws"},
-	"testing":    {"wss://tfchain.test.grid.tf/ws"},
-	"production": {"wss://tfchain.grid.tf/ws"},
-}
-
 type Network string
 
 var (
@@ -23,8 +17,6 @@ var (
 	TestNetwork Network = "testing"
 	QANetwork   Network = "qa"
 )
-
-var NETWORKS = []Network{MainNetwork, QANetwork, TestNetwork}
 
 type Params struct {
 	Interval time.Duration
@@ -37,46 +29,32 @@ type worker struct {
 	src string
 	dst string
 
-	params    Params
+	interval  time.Duration
 	substrate map[Network]client.Manager
 }
 
 // NewWorker creates a new instance of the worker
 func NewWorker(src string, dst string, params Params) worker {
-	var interval time.Duration
-
-	if params.Interval == interval {
-		params.Interval = time.Minute * 10
-	}
-
-	if len(params.QAUrls) == 0 {
-		params.QAUrls = SUBSTRATE_URLS["qa"]
-	}
-
-	if len(params.TestUrls) == 0 {
-		params.TestUrls = SUBSTRATE_URLS["testing"]
-	}
-
-	if len(params.MainUrls) == 0 {
-		params.MainUrls = SUBSTRATE_URLS["production"]
-	}
-
 	substrate := map[Network]client.Manager{}
-	substrate[MainNetwork] = client.NewManager(params.MainUrls...)
-	substrate[QANetwork] = client.NewManager(params.QAUrls...)
-	substrate[TestNetwork] = client.NewManager(params.TestUrls...)
+
+	if len(params.QAUrls) != 0 {
+		substrate[QANetwork] = client.NewManager(params.QAUrls...)
+	}
+
+	if len(params.TestUrls) != 0 {
+		substrate[TestNetwork] = client.NewManager(params.TestUrls...)
+	}
+
+	if len(params.MainUrls) != 0 {
+		substrate[MainNetwork] = client.NewManager(params.MainUrls...)
+	}
 
 	return worker{
 		src:       src,
 		dst:       dst,
-		params:    params,
 		substrate: substrate,
+		interval:  params.Interval,
 	}
-}
-
-// connection sets a new substrate connection
-func (w *worker) connection(network Network) (*client.Substrate, error) {
-	return w.substrate[network].Substrate()
 }
 
 // checkNetwork to check if a network is valid against main, qa, test
@@ -111,12 +89,12 @@ func removeSymLinkIfExists(symLink string) error {
 }
 
 // updateZosVersion updates the latest zos flist for a specific network with the updated zos version
-func (w *worker) updateZosVersion(network Network) error {
+func (w *worker) updateZosVersion(network Network, manager client.Manager) error {
 	if err := checkNetwork(network); err != nil {
 		return err
 	}
 
-	con, err := w.connection(network)
+	con, err := manager.Substrate()
 	if err != nil {
 		return err
 	}
@@ -127,18 +105,28 @@ func (w *worker) updateZosVersion(network Network) error {
 		return err
 	}
 
-	log.Debug().Msg(fmt.Sprintf("getting substrate version %v for network %v", *currentZosVersion, network))
+	log.Debug().Msgf("getting substrate version %v for network %v", *currentZosVersion, network)
 
 	zosCurrent := fmt.Sprintf("%v/zos:%v.flist", w.src, *currentZosVersion)
 	zosLatest := fmt.Sprintf("%v/zos:%v-3:latest.flist", w.dst, network)
 
-	err = symLinkExists(zosCurrent)
-	if os.IsNotExist(err) {
+	// check if current exists
+	if _, err := os.Lstat(zosCurrent); err != nil {
 		return err
 	}
 
-	if err == nil {
-		log.Debug().Msg(fmt.Sprintf("symlink %v to %v already exists", zosCurrent, zosLatest))
+	// check if symlink exists
+	dst, err := os.Readlink(zosLatest)
+
+	if os.IsNotExist(err) {
+		return err
+	} else if err != nil {
+		return err
+	}
+
+	// check if symlink is valid
+	if dst == zosCurrent {
+		log.Debug().Msgf("symlink %v to %v already exists", zosCurrent, zosLatest)
 		return nil
 	}
 
@@ -152,7 +140,7 @@ func (w *worker) updateZosVersion(network Network) error {
 		return err
 	}
 
-	log.Debug().Msg(fmt.Sprintf("symlink %v to %v", zosCurrent, zosLatest))
+	log.Debug().Msgf("symlink %v to %v", zosCurrent, zosLatest)
 
 	return nil
 }
@@ -160,18 +148,18 @@ func (w *worker) updateZosVersion(network Network) error {
 // UpdateWithInterval updates the latest zos flist for a specific network with the updated zos version
 // with a specific interval between each update
 func (w *worker) UpdateWithInterval() {
-	ticker := time.NewTicker(w.params.Interval)
+	ticker := time.NewTicker(w.interval)
 
 	for range ticker.C {
-		for _, network := range NETWORKS {
-			log.Debug().Msg(fmt.Sprintf("updating zos version for %v", network))
+		for network, manager := range w.substrate {
+			log.Debug().Msgf("updating zos version for %v", network)
 
 			exp := backoff.NewExponentialBackOff()
 			exp.MaxInterval = 2 * time.Second
 			exp.MaxElapsedTime = 10 * time.Second
 			err := backoff.Retry(func() error {
 
-				err := w.updateZosVersion(network)
+				err := w.updateZosVersion(network, manager)
 				if err != nil {
 					log.Error().Err(err).Msg("update failure. retrying")
 				}
@@ -180,7 +168,7 @@ func (w *worker) UpdateWithInterval() {
 			}, exp)
 
 			if err != nil {
-				log.Error().Msg(fmt.Sprint("update zos failed with error: ", err))
+				log.Error().Msgf("update zos failed with error: ", err)
 			}
 		}
 	}

@@ -30,31 +30,31 @@ var rootCmd = &cobra.Command{
 	Use:   "zos-update-version",
 	Short: "A worker to update the version of zos",
 	Run: func(cmd *cobra.Command, args []string) {
-		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
 		src, err := cmd.Flags().GetString("src")
 		if err != nil {
-			log.Error().Msg(fmt.Sprint("update zos failed with error: ", err))
+			log.Error().Msgf("update zos failed with error: ", err)
 			return
 		}
 
 		dst, err := cmd.Flags().GetString("dst")
 		if err != nil {
-			log.Error().Msg(fmt.Sprint("update zos failed with error: ", err))
+			log.Error().Msgf("update zos failed with error: ", err)
 			return
 		}
 
 		params := internal.Params{}
 		interval, err := cmd.Flags().GetInt("interval")
 		if err != nil {
-			log.Error().Msg(fmt.Sprint("update zos failed with error: ", err))
+			log.Error().Msgf("update zos failed with error: ", err)
 			return
 		}
 		params.Interval = time.Duration(interval) * time.Minute
 
 		production, err := cmd.Flags().GetStringSlice("main-url")
 		if err != nil {
-			log.Error().Msg(fmt.Sprint("update zos failed with error: ", err))
+			log.Error().Msgf("update zos failed with error: ", err)
 			return
 		}
 		if len(production) > 0 {
@@ -63,23 +63,22 @@ var rootCmd = &cobra.Command{
 
 		test, err := cmd.Flags().GetStringSlice("test-url")
 		if err != nil {
-			log.Error().Msg(fmt.Sprint("update zos failed with error: ", err))
+			log.Error().Msgf("update zos failed with error: ", err)
 			return
 		}
 		if len(test) > 0 {
 			params.TestUrls = test
 		}
 
-		qa, err := cmd.Flags().GetStringSlice("test-url")
+		qa, err := cmd.Flags().GetStringSlice("qa-url")
 		if err != nil {
-			log.Error().Msg(fmt.Sprint("update zos failed with error: ", err))
+			log.Error().Msgf("update zos failed with error: ", err)
 			return
 		}
 		if len(qa) > 0 {
 			params.QAUrls = qa
 		}
 
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		worker := internal.NewWorker(src, dst, params)
 		worker.UpdateWithInterval()
 	},
@@ -101,5 +100,5 @@ func init() {
 
 	rootCmd.Flags().StringSliceP("main-url", "m", []string{}, "Enter your mainnet substrate urls")
 	rootCmd.Flags().StringSliceP("test-url", "t", []string{}, "Enter your testnet substrate urls")
-	rootCmd.Flags().StringSliceP("qa-url", "q", []string{}, "Enter your qanet substrate urls")
+	rootCmd.Flags().StringSliceP("qa-url", "q", []string{"wss://tfchain.qa.grid.tf/ws"}, "Enter your qanet substrate urls")
 }

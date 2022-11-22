@@ -28,3 +28,13 @@ make test
 ```bash
 make coverage
 ```
+
+## Substrate URLs
+
+```go
+SUBSTRATE_URLS := map[string][]string{
+ "qa":         {"wss://tfchain.qa.grid.tf/ws"},
+ "testing":    {"wss://tfchain.test.grid.tf/ws"},
+ "production": {"wss://tfchain.grid.tf/ws"},
+}
+```

@@ -100,5 +100,5 @@ func init() {
 
 	rootCmd.Flags().StringSliceP("main-url", "m", []string{}, "Enter your mainnet substrate urls")
 	rootCmd.Flags().StringSliceP("test-url", "t", []string{}, "Enter your testnet substrate urls")
-	rootCmd.Flags().StringSliceP("qa-url", "q", []string{"wss://tfchain.qa.grid.tf/ws"}, "Enter your qanet substrate urls")
+	rootCmd.Flags().StringSliceP("qa-url", "q", []string{}, "Enter your qanet substrate urls")
 }

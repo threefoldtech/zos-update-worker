@@ -6,11 +6,14 @@ import (
 	"time"
 )
 
-func TestPkidStore(t *testing.T) {
+func TestWorker(t *testing.T) {
 	testDir := t.TempDir()
 
 	params := Params{
 		Interval: 1 * time.Second,
+		QAUrls:   []string{"wss://tfchain.qa.grid.tf/ws"},
+		TestUrls: []string{"wss://tfchain.test.grid.tf/ws"},
+		MainUrls: []string{"wss://tfchain.grid.tf/ws"},
 	}
 	src := testDir + "/tf-autobuilder"
 	dst := testDir + "/tf-zos"

@@ -105,9 +105,9 @@ func (w *worker) updateZosVersion(network Network, manager client.Manager) error
 		return err
 	}
 
-	log.Debug().Msgf("getting substrate version %v for network %v", *currentZosVersion, network)
+	log.Debug().Msgf("getting substrate version %v for network %v", currentZosVersion, network)
 
-	zosCurrent := fmt.Sprintf("%v/zos:%v.flist", w.src, *currentZosVersion)
+	zosCurrent := fmt.Sprintf("%v/zos:%v.flist", w.src, currentZosVersion)
 	zosLatest := fmt.Sprintf("%v/zos:%v-3:latest.flist", w.dst, network)
 
 	// check if current exists
@@ -168,7 +168,7 @@ func (w *worker) UpdateWithInterval() {
 			}, exp)
 
 			if err != nil {
-				log.Error().Msgf("update zos failed with error: ", err)
+				log.Error().Err(err).Msg("update zos failed with error")
 			}
 		}
 	}

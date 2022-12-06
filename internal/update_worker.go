@@ -3,6 +3,7 @@ package internal
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -66,28 +67,6 @@ func checkNetwork(network Network) error {
 	return nil
 }
 
-// symLinkExists check if a symlink exits
-func symLinkExists(symLink string) error {
-	if _, err := os.Lstat(symLink); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// removeSymLinkIfExists check if a symlink exits, remove it
-func removeSymLinkIfExists(symLink string) error {
-	if err := symLinkExists(symLink); err != nil {
-		return err
-	}
-
-	if err := os.Remove(symLink); err != nil {
-		return fmt.Errorf("failed to unlink: %w", err)
-	}
-
-	return nil
-}
-
 // updateZosVersion updates the latest zos flist for a specific network with the updated zos version
 func (w *worker) updateZosVersion(network Network, manager client.Manager) error {
 	if err := checkNetwork(network); err != nil {
@@ -118,31 +97,27 @@ func (w *worker) updateZosVersion(network Network, manager client.Manager) error
 	// check if symlink exists
 	dst, err := os.Readlink(zosLatest)
 
+	// if no symlink, then create it
 	if os.IsNotExist(err) {
-		return err
+		log.Debug().Msgf("symlink %v to %v", zosCurrent, zosLatest)
+		return os.Symlink(zosCurrent, zosLatest)
 	} else if err != nil {
 		return err
 	}
 
-	// check if symlink is valid
-	if dst == zosCurrent {
+	// check if symlink is valid and exists
+	if filepath.Base(dst) == filepath.Base(zosCurrent) {
 		log.Debug().Msgf("symlink %v to %v already exists", zosCurrent, zosLatest)
 		return nil
 	}
 
-	err = removeSymLinkIfExists(zosLatest)
-	if err != nil {
-		return err
-	}
-
-	err = os.Symlink(zosCurrent, zosLatest)
-	if err != nil {
+	// remove symlink if it is not valid and exists
+	if err := os.Remove(zosLatest); err != nil {
 		return err
 	}
 
 	log.Debug().Msgf("symlink %v to %v", zosCurrent, zosLatest)
-
-	return nil
+	return os.Symlink(zosCurrent, zosLatest)
 }
 
 // UpdateWithInterval updates the latest zos flist for a specific network with the updated zos version

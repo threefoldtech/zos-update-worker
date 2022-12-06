@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,42 +20,37 @@ import (
 	"os"
 	"time"
 
-	"github.com/rawdaGastan/zos-update-version/internal"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"github.com/threefoldtech/zos-update-version/internal"
 )
 
 var rootCmd = &cobra.Command{
 	Use:   "zos-update-version",
 	Short: "A worker to update the version of zos",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
 		src, err := cmd.Flags().GetString("src")
 		if err != nil {
-			log.Error().Err(err).Msg("update zos failed with error")
-			return
+			return err
 		}
 
 		dst, err := cmd.Flags().GetString("dst")
 		if err != nil {
-			log.Error().Err(err).Msg("update zos failed with error")
-			return
+			return err
 		}
 
 		params := internal.Params{}
 		interval, err := cmd.Flags().GetInt("interval")
 		if err != nil {
-			log.Error().Err(err).Msg("update zos failed with error")
-			return
+			return err
 		}
 		params.Interval = time.Duration(interval) * time.Minute
 
 		production, err := cmd.Flags().GetStringSlice("main-url")
 		if err != nil {
-			log.Error().Err(err).Msg("update zos failed with error")
-			return
+			return err
 		}
 		if len(production) > 0 {
 			params.MainUrls = production
@@ -63,8 +58,7 @@ var rootCmd = &cobra.Command{
 
 		test, err := cmd.Flags().GetStringSlice("test-url")
 		if err != nil {
-			log.Error().Err(err).Msg("update zos failed with error")
-			return
+			return err
 		}
 		if len(test) > 0 {
 			params.TestUrls = test
@@ -72,15 +66,18 @@ var rootCmd = &cobra.Command{
 
 		qa, err := cmd.Flags().GetStringSlice("qa-url")
 		if err != nil {
-			log.Error().Err(err).Msg("update zos failed with error")
-			return
+			return err
 		}
 		if len(qa) > 0 {
 			params.QAUrls = qa
 		}
 
-		worker := internal.NewWorker(src, dst, params)
-		worker.UpdateWithInterval()
+		worker, err := internal.NewWorker(src, dst, params)
+		if err != nil {
+			return err
+		}
+		worker.UpdateWithInterval(cmd.Context())
+		return nil
 	},
 }
 

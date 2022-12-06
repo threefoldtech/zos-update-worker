@@ -1,4 +1,4 @@
-module github.com/rawdaGastan/zos-update-version
+module github.com/threefoldtech/zos-update-version
 
 go 1.19
 
@@ -6,6 +6,13 @@ require (
 	github.com/rs/zerolog v1.28.0
 	github.com/spf13/cobra v1.6.1
 	github.com/threefoldtech/substrate-client v0.0.0-20221122160826-3e4a9c6a2e17
+)
+
+require (
+	github.com/client9/misspell v0.3.4 // indirect
+	github.com/fzipp/gocyclo v0.6.0 // indirect
+	github.com/remyoudompheng/go-misc v0.0.0-20190427085024-2d6ac652a50e // indirect
+	golang.org/x/tools v0.3.0 // indirect
 )
 
 require (
@@ -32,7 +39,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/vedhavyas/go-subkey v1.0.3 // indirect
 	golang.org/x/crypto v0.0.0-20211117183948-ae814b36b871 // indirect
-	golang.org/x/sys v0.1.0 // indirect
+	golang.org/x/sys v0.3.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 )
 

@@ -28,7 +28,10 @@ func TestWorker(t *testing.T) {
 		t.Error(err)
 	}
 
-	worker := NewWorker(src, dst, params)
+	worker, err := NewWorker(src, dst, params)
+	if err != nil {
+		t.Error(err)
+	}
 
 	t.Run("test_no_src_qa", func(t *testing.T) {
 		err := worker.updateZosVersion("qa", worker.substrate["qa"])
@@ -64,8 +67,10 @@ func TestWorker(t *testing.T) {
 	t.Run("test_params_wrong_url", func(t *testing.T) {
 		params.QAUrls = []string{"wss://tfchain.qa1.grid.tf/ws"}
 
-		worker = NewWorker(src, dst, params)
-
+		worker, err = NewWorker(src, dst, params)
+		if err != nil {
+			t.Error(err)
+		}
 		err := worker.updateZosVersion("qa", worker.substrate["qa"])
 		if err == nil {
 			t.Errorf("update zos should fail")

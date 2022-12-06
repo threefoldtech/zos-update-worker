@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -26,7 +27,7 @@ type Params struct {
 	MainUrls []string
 }
 
-type worker struct {
+type Worker struct {
 	src string
 	dst string
 
@@ -35,7 +36,30 @@ type worker struct {
 }
 
 // NewWorker creates a new instance of the worker
-func NewWorker(src string, dst string, params Params) worker {
+func NewWorker(src string, dst string, params Params) (*Worker, error) {
+
+	// we need to recalculate the path of the symlink here because of the following
+	// - assume we run the tool like `updater -d dst -s src`
+	// - it's then gonna build the links as above.
+	// - then it will crease dst/zos:testing-3:latest.flist that points to dst/zos:<v>.flist
+	// and that is wrong because now the link points to a wrong path. it instead need to be ../dst/<file>
+	// so recalculating here
+	// we need to find a abs path from dst to src.
+	// so this goes as this
+	// - we make sure that src and dst are always abs
+	// this later will allow us to calculate relative path from dst to src
+
+	src, err := filepath.Abs(src)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get src as abs path: %w", err)
+	}
+	dst, err = filepath.Abs(dst)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get dst as abs path: %w", err)
+	}
+
+	log.Info().Str("src", src).Str("dst", dst).Msg("paths")
+
 	substrate := map[Network]client.Manager{}
 
 	if len(params.QAUrls) != 0 {
@@ -50,12 +74,12 @@ func NewWorker(src string, dst string, params Params) worker {
 		substrate[MainNetwork] = client.NewManager(params.MainUrls...)
 	}
 
-	return worker{
+	return &Worker{
 		src:       src,
 		dst:       dst,
 		substrate: substrate,
 		interval:  params.Interval,
-	}
+	}, nil
 }
 
 // checkNetwork to check if a network is valid against main, qa, test
@@ -68,7 +92,7 @@ func checkNetwork(network Network) error {
 }
 
 // updateZosVersion updates the latest zos flist for a specific network with the updated zos version
-func (w *worker) updateZosVersion(network Network, manager client.Manager) error {
+func (w *Worker) updateZosVersion(network Network, manager client.Manager) error {
 	if err := checkNetwork(network); err != nil {
 		return err
 	}
@@ -86,8 +110,18 @@ func (w *worker) updateZosVersion(network Network, manager client.Manager) error
 
 	log.Debug().Msgf("getting substrate version %v for network %v", currentZosVersion, network)
 
+	// now we need to find how dst is relative to src
+	path, err := filepath.Rel(w.dst, w.src)
+	if err != nil {
+		return fmt.Errorf("failed to get dst relative path to src: %w", err)
+	}
+
 	zosCurrent := fmt.Sprintf("%v/zos:%v.flist", w.src, currentZosVersion)
 	zosLatest := fmt.Sprintf("%v/zos:%v-3:latest.flist", w.dst, network)
+	// the link is like zosCurrent but it has the path relative from the symlink
+	// point of view (so relative to the symlink, how to reach zosCurrent)
+	// hence the link is instead used in all calls to symlink
+	link := fmt.Sprintf("%v/zos:%v.flist", path, currentZosVersion)
 
 	// check if current exists
 	if _, err := os.Lstat(zosCurrent); err != nil {
@@ -99,8 +133,8 @@ func (w *worker) updateZosVersion(network Network, manager client.Manager) error
 
 	// if no symlink, then create it
 	if os.IsNotExist(err) {
-		log.Debug().Msgf("symlink %v to %v", zosCurrent, zosLatest)
-		return os.Symlink(zosCurrent, zosLatest)
+		log.Debug().Msgf("symlink %v to %v", zosLatest, zosCurrent)
+		return os.Symlink(link, zosLatest)
 	} else if err != nil {
 		return err
 	}
@@ -116,16 +150,16 @@ func (w *worker) updateZosVersion(network Network, manager client.Manager) error
 		return err
 	}
 
-	log.Debug().Msgf("symlink %v to %v", zosCurrent, zosLatest)
-	return os.Symlink(zosCurrent, zosLatest)
+	log.Debug().Msgf("symlink %v to %v", zosLatest, zosCurrent)
+	return os.Symlink(link, zosLatest)
 }
 
 // UpdateWithInterval updates the latest zos flist for a specific network with the updated zos version
 // with a specific interval between each update
-func (w *worker) UpdateWithInterval() {
+func (w *Worker) UpdateWithInterval(ctx context.Context) {
 	ticker := time.NewTicker(w.interval)
 
-	for range ticker.C {
+	for {
 		for network, manager := range w.substrate {
 			log.Debug().Msgf("updating zos version for %v", network)
 
@@ -145,6 +179,12 @@ func (w *worker) UpdateWithInterval() {
 			if err != nil {
 				log.Error().Err(err).Msg("update zos failed with error")
 			}
+		}
+
+		select {
+		case <-ticker.C:
+		case <-ctx.Done():
+			return
 		}
 	}
 }

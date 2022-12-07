@@ -21,6 +21,8 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+
 	"github.com/spf13/cobra"
 	"github.com/threefoldtech/zos-update-version/internal"
 )
@@ -29,7 +31,11 @@ var rootCmd = &cobra.Command{
 	Use:   "zos-update-version",
 	Short: "A worker to update the version of zos",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		if ok, _ := cmd.Flags().GetBool("debug"); ok {
+			zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		} else {
+			zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		}
 
 		src, err := cmd.Flags().GetString("src")
 		if err != nil {
@@ -89,12 +95,15 @@ func Execute() {
 }
 
 func init() {
+
+	log.Logger = log.Output(zerolog.NewConsoleWriter())
+
 	cobra.OnInitialize()
 
 	rootCmd.Flags().StringP("src", "s", "tf-autobuilder", "Enter your source directory")
 	rootCmd.Flags().StringP("dst", "d", "tf-zos", "Enter your destination directory")
 	rootCmd.Flags().IntP("interval", "i", 10, "Enter the interval between each update")
-
+	rootCmd.Flags().Bool("debug", false, "enable debug logging")
 	rootCmd.Flags().StringSliceP("main-url", "m", []string{}, "Enter your mainnet substrate urls")
 	rootCmd.Flags().StringSliceP("test-url", "t", []string{}, "Enter your testnet substrate urls")
 	rootCmd.Flags().StringSliceP("qa-url", "q", []string{}, "Enter your qanet substrate urls")

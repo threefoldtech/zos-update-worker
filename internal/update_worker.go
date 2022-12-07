@@ -133,7 +133,7 @@ func (w *Worker) updateZosVersion(network Network, manager client.Manager) error
 
 	// if no symlink, then create it
 	if os.IsNotExist(err) {
-		log.Debug().Msgf("symlink %v to %v", zosLatest, zosCurrent)
+		log.Info().Str("from", zosLatest).Str("to", zosCurrent).Msg("linking")
 		return os.Symlink(link, zosLatest)
 	} else if err != nil {
 		return err
@@ -150,7 +150,7 @@ func (w *Worker) updateZosVersion(network Network, manager client.Manager) error
 		return err
 	}
 
-	log.Debug().Msgf("symlink %v to %v", zosLatest, zosCurrent)
+	log.Info().Str("from", zosLatest).Str("to", zosCurrent).Msg("linking")
 	return os.Symlink(link, zosLatest)
 }
 

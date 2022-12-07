@@ -9,13 +9,6 @@ require (
 )
 
 require (
-	github.com/client9/misspell v0.3.4 // indirect
-	github.com/fzipp/gocyclo v0.6.0 // indirect
-	github.com/remyoudompheng/go-misc v0.0.0-20190427085024-2d6ac652a50e // indirect
-	golang.org/x/tools v0.3.0 // indirect
-)
-
-require (
 	github.com/ChainSafe/go-schnorrkel v1.0.0 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.5 // indirect

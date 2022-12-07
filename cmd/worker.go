@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,77 +20,64 @@ import (
 	"os"
 	"time"
 
-	"github.com/rawdaGastan/zos-update-version/internal"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
+	"github.com/threefoldtech/zos-update-version/internal"
 )
-
-var cfgFile string
-
-// NOTE: the worker arguments should also accept urls (multiple) per network (mainnet, testnet, qa)
-// but should be set to good defaults.
-
-// worker --src-dir tf-autobilder --dst-dir tf-zos
 
 var rootCmd = &cobra.Command{
 	Use:   "zos-update-version",
 	Short: "A worker to update the version of zos",
-	Run: func(cmd *cobra.Command, args []string) {
-		logger := zerolog.New(os.Stdout).With().Logger()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
 		src, err := cmd.Flags().GetString("src")
 		if err != nil {
-			logger.Error().Msg("update zos failed with error: " + fmt.Sprint(err))
-			return
+			return err
 		}
 
 		dst, err := cmd.Flags().GetString("dst")
 		if err != nil {
-			logger.Error().Msg("update zos failed with error: " + fmt.Sprint(err))
-			return
+			return err
 		}
 
-		params := map[string]any{}
-		interval, err := cmd.Flags().GetDuration("interval")
+		params := internal.Params{}
+		interval, err := cmd.Flags().GetInt("interval")
 		if err != nil {
-			logger.Error().Msg("update zos failed with error: " + fmt.Sprint(err))
-			return
+			return err
 		}
-		params["interval"] = interval
+		params.Interval = time.Duration(interval) * time.Minute
 
 		production, err := cmd.Flags().GetStringSlice("main-url")
 		if err != nil {
-			logger.Error().Msg("update zos failed with error: " + fmt.Sprint(err))
-			return
+			return err
 		}
 		if len(production) > 0 {
-			params["production"] = production
+			params.MainUrls = production
 		}
 
 		test, err := cmd.Flags().GetStringSlice("test-url")
 		if err != nil {
-			logger.Error().Msg("update zos failed with error: " + fmt.Sprint(err))
-			return
+			return err
 		}
 		if len(test) > 0 {
-			params["testing"] = test
+			params.TestUrls = test
 		}
 
-		qa, err := cmd.Flags().GetStringSlice("test-url")
+		qa, err := cmd.Flags().GetStringSlice("qa-url")
 		if err != nil {
-			logger.Error().Msg("update zos failed with error: " + fmt.Sprint(err))
-			return
+			return err
 		}
 		if len(qa) > 0 {
-			params["qa"] = qa
+			params.QAUrls = qa
 		}
 
-		worker := internal.NewWorker(src, dst, params)
-		err = worker.UpdateWithInterval()
+		worker, err := internal.NewWorker(src, dst, params)
 		if err != nil {
-			logger.Error().Msg("update zos failed with error: " + fmt.Sprint(err))
-			return
+			return err
 		}
+		worker.UpdateWithInterval(cmd.Context())
+		return nil
 	},
 }
 
@@ -102,9 +89,11 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringP("src", "s", "tf-autobilder", "Enter your source directory")
+	cobra.OnInitialize()
+
+	rootCmd.Flags().StringP("src", "s", "tf-autobuilder", "Enter your source directory")
 	rootCmd.Flags().StringP("dst", "d", "tf-zos", "Enter your destination directory")
-	rootCmd.Flags().DurationP("interval", "i", 10*time.Minute, "Enter the interval between each update")
+	rootCmd.Flags().IntP("interval", "i", 10, "Enter the interval between each update")
 
 	rootCmd.Flags().StringSliceP("main-url", "m", []string{}, "Enter your mainnet substrate urls")
 	rootCmd.Flags().StringSliceP("test-url", "t", []string{}, "Enter your testnet substrate urls")
